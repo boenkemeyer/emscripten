@@ -3366,7 +3366,7 @@ var Module = { print: function(x) { throw '<{(' + x + ')}>' } };
       self.assertExists('header.h.gch') # default output is gch
       if suffix != 'gch':
         run_process([PYTHON, EMCC, '-xc++-header', 'header.h', '-o', 'header.h.' + suffix])
-        assert open('header.h.gch', 'rb').read() == open('header.h.' + suffix, 'rb').read()
+        self.assertBinaryEqual('header.h.gch', 'header.h.' + suffix)
 
       create_test_file('src.cpp', r'''
 #include <stdio.h>
@@ -3378,7 +3378,7 @@ int main() {
       run_process([PYTHON, EMCC, 'src.cpp', '-include', 'header.h'])
 
       output = run_js('a.out.js', stderr=PIPE, full_output=True, engine=NODE_JS)
-      assert '|5|' in output, output
+      self.assertContained('|5|', output)
 
       # also verify that the gch is actually used
       err = run_process([PYTHON, EMCC, 'src.cpp', '-include', 'header.h', '-Xclang', '-print-stats'], stderr=PIPE).stderr
@@ -3386,7 +3386,7 @@ int main() {
       # and sanity check it is not mentioned when not
       try_delete('header.h.' + suffix)
       err = run_process([PYTHON, EMCC, 'src.cpp', '-include', 'header.h', '-Xclang', '-print-stats'], stderr=PIPE).stderr
-      assert '*** PCH/Modules Loaded:\nModule: header.h.' + suffix not in err.replace('\r\n', '\n'), err
+      self.assertNotContained('*** PCH/Modules Loaded:\nModule: header.h.' + suffix, err.replace('\r\n', '\n'))
 
       # with specified target via -o
       try_delete('header.h.' + suffix)
@@ -3397,7 +3397,7 @@ int main() {
       run_process([PYTHON, EMCC, '-xc++-header', 'header.h', '-o', 'header.h.' + suffix])
       run_process([PYTHON, EMCC, 'src.cpp', '-include-pch', 'header.h.' + suffix])
       output = run_js('a.out.js')
-      assert '|5|' in output, output
+      self.assertContained('|5|', output)
 
   @no_wasm_backend('tests extra fastcomp warnings on unaligned loads/stores, which matter a lot more in asm.js')
   def test_warn_unaligned(self):
@@ -10782,3 +10782,19 @@ int main() {
 
     # Verify the JS output was smaller
     self.assertLess(os.path.getsize('src.c.o.js'), size_default)
+
+  @no_fastcomp('no .s file support')
+  def test_assembly(self):
+    run_process([PYTHON, EMCC, '-c', path_from_root('tests', 'other', 'test_asm.s'), '-o', 'foo.o'])
+    src = path_from_root('tests', 'other', 'test_asm.c')
+    output = path_from_root('tests', 'other', 'test_asm.out')
+    self.emcc_args.append('foo.o')
+    self.do_run_from_file(src, output)
+
+  @no_fastcomp('no .s file support')
+  def test_assembly_preprocessed(self):
+    run_process([PYTHON, EMCC, '-c', path_from_root('tests', 'other', 'test_asm_cpp.S'), '-o', 'foo.o'])
+    src = path_from_root('tests', 'other', 'test_asm.c')
+    output = path_from_root('tests', 'other', 'test_asm.out')
+    self.emcc_args.append('foo.o')
+    self.do_run_from_file(src, output)

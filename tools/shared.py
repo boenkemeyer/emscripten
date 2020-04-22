@@ -742,15 +742,19 @@ def emsdk_cflags():
   return c_opts + include_directive(c_include_paths)
 
 
+def get_asmflags(user_args):
+  return ['-target', get_llvm_target()]
+
+
 def get_cflags(user_args):
   # Set the LIBCPP ABI version to at least 2 so that we get nicely aligned string
   # data and other nice fixes.
-  c_opts = [# '-fno-threadsafe-statics', # disabled due to issue 1289
-            '-target', get_llvm_target(),
-            '-D__EMSCRIPTEN_major__=' + str(EMSCRIPTEN_VERSION_MAJOR),
-            '-D__EMSCRIPTEN_minor__=' + str(EMSCRIPTEN_VERSION_MINOR),
-            '-D__EMSCRIPTEN_tiny__=' + str(EMSCRIPTEN_VERSION_TINY),
-            '-D_LIBCPP_ABI_VERSION=2']
+  c_opts = COMPILER_OPTS + [# '-fno-threadsafe-statics', disabled due to issue 1289
+                            '-target', get_llvm_target(),
+                            '-D__EMSCRIPTEN_major__=' + str(EMSCRIPTEN_VERSION_MAJOR),
+                            '-D__EMSCRIPTEN_minor__=' + str(EMSCRIPTEN_VERSION_MINOR),
+                            '-D__EMSCRIPTEN_tiny__=' + str(EMSCRIPTEN_VERSION_TINY),
+                            '-D_LIBCPP_ABI_VERSION=2']
 
   if get_llvm_target() == WASM_TARGET:
     # wasm target does not automatically define emscripten stuff, so do it here.
